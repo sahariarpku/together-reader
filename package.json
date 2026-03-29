@@ -1,0 +1,16 @@
+{
+  "name": "together-reader",
+  "version": "1.0.0",
+  "description": "Read books together with a friend, anywhere in the world",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "npx nodemon server.js"
+  },
+  "dependencies": {
+    "cloudinary": "^2.9.0",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.6.1"
+  }
+}

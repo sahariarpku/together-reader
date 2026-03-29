@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Together Reader</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ── SPLASH ── -->
+  <div id="splash" class="screen active">
+    <div class="splash-content">
+      <div class="logo">
+        <div class="logo-icon">📖</div>
+        <h1>Together Reader</h1>
+        <p class="tagline">Read with someone you love, from anywhere in the world</p>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-icon">✦</div>
+          <h2>Start a Room</h2>
+          <p>Create a cozy reading space and invite your friend</p>
+          <button class="btn btn-primary" id="create-room-btn">Create Room</button>
+        </div>
+
+        <div class="card-divider">or</div>
+
+        <div class="card">
+          <div class="card-icon">↗</div>
+          <h2>Join a Room</h2>
+          <p>Enter the room code your friend shared with you</p>
+          <div class="input-group">
+            <input type="text" id="room-code-input" placeholder="e.g. AB3X7K" maxlength="6" autocomplete="off" spellcheck="false">
+            <button class="btn btn-secondary" id="join-room-btn">Join</button>
+          </div>
+          <div id="join-error" class="error-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WAITING ROOM ── -->
+  <div id="waiting" class="screen">
+    <div class="waiting-content">
+      <div class="waiting-book">📚</div>
+      <h2>Your room is ready</h2>
+      <p class="waiting-sub">Share this link with your friend</p>
+
+      <div class="room-code-display">
+        <span id="room-code-display"></span>
+        <button class="copy-btn" id="copy-code-btn" title="Copy shareable link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          Copy Link
+        </button>
+      </div>
+
+      <div class="friend-status-row" id="waiting-status">
+        <div class="pulse-dot"></div>
+        <span>Waiting for your friend to join…</span>
+      </div>
+
+      <div class="waiting-upload-area">
+        <p class="upload-hint">You can also upload a book now</p>
+        <label class="btn btn-ghost" for="book-upload-waiting">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Choose a PDF
+          <input type="file" id="book-upload-waiting" accept=".pdf" hidden>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── READER ── -->
+  <div id="reader" class="screen">
+
+    <header class="reader-header">
+      <div class="header-left">
+        <div class="friend-badge" id="friend-badge">
+          <div class="friend-dot" id="friend-dot"></div>
+          <span id="friend-label">Waiting…</span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <span class="book-title" id="book-title">Together Reader</span>
+      </div>
+
+      <div class="header-right">
+        <span class="room-tag">Room <strong id="room-tag-code"></strong></span>
+        <button class="icon-btn leave-btn" id="leave-room-btn" title="Leave room">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+
+        <!-- History -->
+        <button class="icon-btn" id="history-btn" title="Reading history">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </button>
+
+        <label class="icon-btn" for="book-upload-reader" title="Upload new book">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <input type="file" id="book-upload-reader" accept=".pdf" hidden>
+        </label>
+      </div>
+    </header>
+
+    <!-- No-book state -->
+    <div id="no-book" class="no-book">
+      <div class="no-book-icon">📄</div>
+      <h3>No book yet</h3>
+      <p>Upload a PDF to start reading together</p>
+      <label class="btn btn-primary" for="book-upload-main">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Upload a Book
+        <input type="file" id="book-upload-main" accept=".pdf" hidden>
+      </label>
+    </div>
+
+    <!-- PDF viewer -->
+    <div id="pdf-viewer" class="pdf-viewer hidden">
+      <!-- Friend turned page flash -->
+      <div class="page-flash" id="page-flash"></div>
+
+      <div class="canvas-wrap" id="canvas-wrap">
+        <div class="loading-ring" id="loading-ring">
+          <div class="ring"></div>
+        </div>
+        <canvas id="pdf-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- History panel -->
+    <div class="history-panel hidden" id="history-panel">
+      <div class="history-header">
+        <h3>Reading History</h3>
+        <button class="history-close" id="history-close">&times;</button>
+      </div>
+      <div class="history-list" id="history-list">
+        <p class="history-empty">No books read yet</p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <footer class="reader-footer" id="reader-footer">
+      <!-- Mic toggle -->
+      <button class="mic-btn" id="mic-btn" title="Toggle microphone">
+        <svg id="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </button>
+
+      <div class="footer-sep"></div>
+
+      <button class="nav-btn" id="prev-btn" title="Previous (←)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <div class="page-counter">
+        <input type="number" id="page-input" min="1" value="1">
+        <span class="slash">/</span>
+        <span id="total-pages">—</span>
+      </div>
+
+      <button class="nav-btn" id="next-btn" title="Next (→)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      <div class="footer-sep"></div>
+
+      <!-- Zoom controls -->
+      <button class="nav-btn" id="zoom-out-btn" title="Zoom out">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="8" y1="11" x2="14" y2="11"></line>
+        </svg>
+      </button>
+      <span class="zoom-level" id="zoom-level">100%</span>
+      <button class="nav-btn" id="zoom-in-btn" title="Zoom in">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="11" y1="8" x2="11" y2="14"></line>
+          <line x1="8" y1="11" x2="14" y2="11"></line>
+        </svg>
+      </button>
+
+      <div class="footer-sep"></div>
+
+      <!-- Reactions -->
+      <div class="reactions" id="reactions">
+        <button class="react-btn" data-emoji="❤️">❤️</button>
+        <button class="react-btn" data-emoji="😂">😂</button>
+        <button class="react-btn" data-emoji="😮">😮</button>
+        <button class="react-btn" data-emoji="🤔">🤔</button>
+        <button class="react-btn" data-emoji="🎉">🎉</button>
+      </div>
+    </footer>
+
+    <!-- Floating reaction stage -->
+    <div id="reaction-stage" class="reaction-stage"></div>
+
+    <!-- Remote audio for WebRTC voice -->
+    <audio id="remote-audio" autoplay playsinline></audio>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Together Reader",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/sahariarrahman/Desktop/book reader/server.js"],
+      "port": 3000,
+      "autoPort": false
+    }
+  ]
+}
