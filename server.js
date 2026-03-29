@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 50e6 });
 
-// ── Optional Cloudinary setup (falls back to local disk if no credentials) ──
+// ── Optional Cloudinary setup (falls back to local disk if no credentials or account issue) ──
 let cloudinary = null;
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
   const { v2: cld } = require('cloudinary');
@@ -21,8 +21,16 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
     api_key:     process.env.CLOUDINARY_API_KEY,
     api_secret:  process.env.CLOUDINARY_API_SECRET,
   });
-  cloudinary = cld;
-  console.log('✅  Cloudinary configured — PDFs stored in cloud for 30 days');
+  // Test the connection before committing to cloud storage
+  cld.api.ping((err) => {
+    if (err) {
+      console.warn('⚠️  Cloudinary not available (' + (err.message || err) + ') — falling back to local disk storage.');
+      cloudinary = null;
+    } else {
+      cloudinary = cld;
+      console.log('✅  Cloudinary connected — PDFs stored in cloud for 30 days');
+    }
+  });
 } else {
   console.log('ℹ️   No Cloudinary credentials — PDFs stored locally.');
 }
@@ -155,11 +163,15 @@ app.post('/upload/:roomId', upload.single('book'), async (req, res) => {
 io.on('connection', (socket) => {
 
   socket.on('create-room', (callback) => {
+    // Leave previous room if any
+    leaveRoom(socket);
+
     const roomId = generateRoomId();
     rooms.set(roomId, makeRoom());
     socket.join(roomId);
     socket.roomId = roomId;
     rooms.get(roomId).users.add(socket.id);
+    console.log(`[ROOM] User ${socket.id} created room ${roomId}`);
     callback({ roomId });
   });
 
@@ -167,12 +179,17 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomId);
     if (!room) return callback({ error: 'Room not found. Check the code and try again.' });
 
+    // Leave previous room if any
+    leaveRoom(socket);
+
     // Capture existing peer IDs BEFORE adding the new socket
     const existingPeers = [...room.users];
 
     socket.join(roomId);
     socket.roomId = roomId;
     room.users.add(socket.id);
+
+    console.log(`[ROOM] User ${socket.id} joined room ${roomId}`);
 
     // Notify existing users that a new peer joined (so they can initiate WebRTC)
     socket.to(roomId).emit('peer-joined', { peerId: socket.id });
@@ -186,6 +203,34 @@ io.on('connection', (socket) => {
       peers:       existingPeers,  // used by new joiner to connect to existing users
     });
   });
+
+  function leaveRoom(socket) {
+    const roomId = socket.roomId;
+    if (!roomId || !rooms.has(roomId)) return;
+    const room = rooms.get(roomId);
+    room.users.delete(socket.id);
+    socket.leave(roomId);
+    io.to(roomId).emit('peer-left', { peerId: socket.id, userCount: room.users.size });
+    console.log(`[ROOM] User ${socket.id} left room ${roomId}`);
+
+    // Schedule cleanup for empty non-master rooms
+    // NOTE: setTimeout max value is 2,147,483,647 (~24.8 days)
+    if (room.users.size === 0 && roomId !== 'DEA026') {
+      const timeoutVal = Math.min(THIRTY_DAYS, 2147483647);
+      setTimeout(async () => {
+        if (!rooms.has(roomId) || rooms.get(roomId).users.size !== 0) return;
+        const r = rooms.get(roomId);
+        if (cloudinary && r.bookPublicId) {
+          await cloudinary.uploader.destroy(r.bookPublicId, { resource_type: 'raw' }).catch(() => {});
+        } else if (!cloudinary && r.bookPublicId) {
+          try { fs.unlinkSync(path.join(uploadDir, r.bookPublicId)); } catch (e) {}
+        }
+        rooms.delete(roomId);
+        console.log(`[ROOM] Room ${roomId} cleaned up after ${timeoutVal}ms`);
+      }, timeoutVal);
+    }
+    delete socket.roomId;
+  }
 
   socket.on('page-change', ({ page }) => {
     const room = rooms.get(socket.roomId);
@@ -217,25 +262,7 @@ io.on('connection', (socket) => {
   socket.on('webrtc-ice',    ({ to, candidate }) => io.to(to).emit('webrtc-ice',    { from: socket.id, candidate }));
 
   socket.on('disconnect', () => {
-    const roomId = socket.roomId;
-    if (!roomId || !rooms.has(roomId)) return;
-    const room = rooms.get(roomId);
-    room.users.delete(socket.id);
-    io.to(roomId).emit('peer-left', { peerId: socket.id, userCount: room.users.size });
-
-    // Schedule cleanup for empty non-master rooms after 30 days
-    if (room.users.size === 0 && roomId !== 'DEA026') {
-      setTimeout(async () => {
-        if (!rooms.has(roomId) || rooms.get(roomId).users.size !== 0) return;
-        const r = rooms.get(roomId);
-        if (cloudinary && r.bookPublicId) {
-          await cloudinary.uploader.destroy(r.bookPublicId, { resource_type: 'raw' }).catch(() => {});
-        } else if (!cloudinary && r.bookPublicId) {
-          try { fs.unlinkSync(path.join(uploadDir, r.bookPublicId)); } catch (e) {}
-        }
-        rooms.delete(roomId);
-      }, THIRTY_DAYS);
-    }
+    leaveRoom(socket);
   });
 });
 

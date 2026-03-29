@@ -75,15 +75,15 @@ function initSocket() {
     }
   });
 
-  // A new peer joined — existing users initiate WebRTC to them
+  // A new peer joined — initiate WebRTC to them
   S.socket.on('peer-joined', ({ peerId }) => {
     S.friendOnline = true;
     setFriendOnline(true);
     showToast('Someone joined the room!');
     if ($('waiting').classList.contains('active')) show('reader');
-    if (S.micOn && S.localStream) {
-      createPeerConnection(peerId, true);
-    }
+    // New user joined, so WE (the existing user) act as answerer for now,
+    // or let the new joiner offer. To keep it simple: new joiner always offers.
+    if (!S.peers.has(peerId)) createPeerConnection(peerId, false);
   });
 
   S.socket.on('peer-left', ({ peerId, userCount }) => {
@@ -253,9 +253,20 @@ async function enableMic() {
     updateMicBtn(true);
     S.socket.emit('mic-on');
 
-    // Add tracks to all existing peer connections
-    for (const { pc } of S.peers.values()) {
-      S.localStream.getTracks().forEach(t => { try { pc.addTrack(t, S.localStream); } catch(e) {} });
+    // Add tracks to all existing peer connections and renegotiate
+    for (const [peerId, entry] of S.peers.entries()) {
+      const { pc } = entry;
+      S.localStream.getTracks().forEach(t => {
+        try { pc.addTrack(t, S.localStream); } catch(e) {}
+      });
+      // Trigger renegotiation
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        S.socket.emit('webrtc-offer', { to: peerId, sdp: pc.localDescription });
+      } catch (e) {
+        console.error('Renegotiation error for ' + peerId, e);
+      }
     }
   } catch {
     showToast('Could not access microphone');
@@ -338,8 +349,8 @@ function joinRoom(roomId) {
       const saved = getBookPage(bookName);
       loadPDF(bookPath, saved || currentPage);
     }
-    // Connect WebRTC to each existing peer if mic is already on
-    if (peers && peers.length && S.micOn && S.localStream) {
+    // Connect WebRTC to each existing peer (we are the new joiner, so we offer)
+    if (peers && peers.length) {
       peers.forEach(peerId => createPeerConnection(peerId, true));
     }
   });
@@ -644,7 +655,11 @@ function init() {
   const targetRoom = getRoomFromUrl() || localStorage.getItem('tr:roomId');
   if (targetRoom) {
     showToast('Joining room ' + targetRoom + '…');
-    S.socket.once('connect', () => joinRoom(targetRoom));
+    if (S.socket.connected) {
+      joinRoom(targetRoom);
+    } else {
+      S.socket.once('connect', () => joinRoom(targetRoom));
+    }
     show('splash');
   } else {
     show('splash');
