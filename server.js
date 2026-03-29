@@ -17,9 +17,9 @@ let cloudinary = null;
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
   const { v2: cld } = require('cloudinary');
   cld.config({
-    cloud_name:  process.env.CLOUDINARY_CLOUD_NAME,
-    api_key:     process.env.CLOUDINARY_API_KEY,
-    api_secret:  process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
   });
   // Test the connection before committing to cloud storage
   cld.api.ping((err) => {
@@ -41,13 +41,13 @@ const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 // ── Helper: create a fresh room object ──
 function makeRoom() {
   return {
-    users:       new Set(),
+    users: new Set(),
     currentPage: 1,
-    bookUrl:     null,
+    bookUrl: null,
     bookPublicId: null,
-    bookName:    null,
-    createdAt:   Date.now(),
-    expiresAt:   Date.now() + THIRTY_DAYS,
+    bookName: null,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + THIRTY_DAYS,
   };
 }
 
@@ -107,7 +107,7 @@ app.post('/upload/:roomId', upload.single('book'), async (req, res) => {
     if (cloudinary) {
       // Delete old file from Cloudinary
       if (room.bookPublicId) {
-        await cloudinary.uploader.destroy(room.bookPublicId, { resource_type: 'raw' }).catch(() => {});
+        await cloudinary.uploader.destroy(room.bookPublicId, { resource_type: 'raw' }).catch(() => { });
       }
 
       // Upload buffer to Cloudinary
@@ -132,23 +132,23 @@ app.post('/upload/:roomId', upload.single('book'), async (req, res) => {
     } else {
       // Local disk fallback
       if (room.bookPublicId) {
-        try { fs.unlinkSync(path.join(uploadDir, room.bookPublicId)); } catch (e) {}
+        try { fs.unlinkSync(path.join(uploadDir, room.bookPublicId)); } catch (e) { }
       }
       const filename = `${Date.now()}-${req.file.originalname}`;
       fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
-      bookUrl      = `/uploads/${filename}`;
+      bookUrl = `/uploads/${filename}`;
       bookPublicId = filename;
     }
 
-    room.bookUrl      = bookUrl;
+    room.bookUrl = bookUrl;
     room.bookPublicId = bookPublicId;
-    room.bookName     = req.file.originalname.replace(/\.pdf$/i, '');
-    room.currentPage  = 1;
-    room.expiresAt    = Date.now() + THIRTY_DAYS;
+    room.bookName = req.file.originalname.replace(/\.pdf$/i, '');
+    room.currentPage = 1;
+    room.expiresAt = Date.now() + THIRTY_DAYS;
 
     io.to(roomId).emit('book-updated', {
-      bookPath:    room.bookUrl,
-      bookName:    room.bookName,
+      bookPath: room.bookUrl,
+      bookName: room.bookName,
       currentPage: 1,
     });
 
@@ -195,12 +195,12 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('peer-joined', { peerId: socket.id });
 
     callback({
-      success:     true,
-      bookPath:    room.bookUrl,
-      bookName:    room.bookName,
+      success: true,
+      bookPath: room.bookUrl,
+      bookName: room.bookName,
       currentPage: room.currentPage,
-      userCount:   room.users.size,
-      peers:       existingPeers,  // used by new joiner to connect to existing users
+      userCount: room.users.size,
+      peers: existingPeers,  // used by new joiner to connect to existing users
     });
   });
 
@@ -221,9 +221,9 @@ io.on('connection', (socket) => {
         if (!rooms.has(roomId) || rooms.get(roomId).users.size !== 0) return;
         const r = rooms.get(roomId);
         if (cloudinary && r.bookPublicId) {
-          await cloudinary.uploader.destroy(r.bookPublicId, { resource_type: 'raw' }).catch(() => {});
+          await cloudinary.uploader.destroy(r.bookPublicId, { resource_type: 'raw' }).catch(() => { });
         } else if (!cloudinary && r.bookPublicId) {
-          try { fs.unlinkSync(path.join(uploadDir, r.bookPublicId)); } catch (e) {}
+          try { fs.unlinkSync(path.join(uploadDir, r.bookPublicId)); } catch (e) { }
         }
         rooms.delete(roomId);
         console.log(`[ROOM] Room ${roomId} cleaned up after ${timeoutVal}ms`);
@@ -246,20 +246,20 @@ io.on('connection', (socket) => {
   socket.on('switch-book', ({ bookPath, bookName, currentPage }) => {
     const room = rooms.get(socket.roomId);
     if (!room) return;
-    room.bookUrl     = bookPath;
-    room.bookName    = bookName;
+    room.bookUrl = bookPath;
+    room.bookName = bookName;
     room.currentPage = currentPage;
     socket.to(socket.roomId).emit('book-switched', { bookPath, bookName, currentPage });
   });
 
   // ── Mic presence ──
-  socket.on('mic-on',  () => socket.to(socket.roomId).emit('peer-mic-on',  { peerId: socket.id }));
+  socket.on('mic-on', () => socket.to(socket.roomId).emit('peer-mic-on', { peerId: socket.id }));
   socket.on('mic-off', () => socket.to(socket.roomId).emit('peer-mic-off', { peerId: socket.id }));
 
   // ── WebRTC signaling — all targeted to specific peer ──
-  socket.on('webrtc-offer',  ({ to, sdp })       => io.to(to).emit('webrtc-offer',  { from: socket.id, sdp }));
-  socket.on('webrtc-answer', ({ to, sdp })       => io.to(to).emit('webrtc-answer', { from: socket.id, sdp }));
-  socket.on('webrtc-ice',    ({ to, candidate }) => io.to(to).emit('webrtc-ice',    { from: socket.id, candidate }));
+  socket.on('webrtc-offer', ({ to, sdp }) => io.to(to).emit('webrtc-offer', { from: socket.id, sdp }));
+  socket.on('webrtc-answer', ({ to, sdp }) => io.to(to).emit('webrtc-answer', { from: socket.id, sdp }));
+  socket.on('webrtc-ice', ({ to, candidate }) => io.to(to).emit('webrtc-ice', { from: socket.id, candidate }));
 
   socket.on('disconnect', () => {
     leaveRoom(socket);

@@ -41,9 +41,10 @@ button { font-family: var(--font-ui); }
   background-image:
     radial-gradient(ellipse at 15% 55%, rgba(181,118,58,.09) 0%, transparent 55%),
     radial-gradient(ellipse at 85% 20%, rgba(74,155,142,.08) 0%, transparent 55%);
+  overflow-y: auto;
 }
 
-.splash-content { width: 100%; max-width: 540px; padding: 24px; }
+.splash-content { width: 100%; max-width: 540px; padding: 24px; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
 
 .logo { text-align: center; margin-bottom: 44px; }
 .logo-icon { font-size: 54px; display: block; margin-bottom: 14px; }
@@ -249,7 +250,7 @@ button { font-family: var(--font-ui); }
   display: flex; align-items: center; justify-content: center;
   gap: 8px; padding: 10px 20px;
   background: var(--surface); border-top: 1px solid var(--border);
-  flex-shrink: 0;
+  flex-shrink: 0; min-height: 60px;
 }
 
 .nav-btn {
@@ -269,6 +270,7 @@ button { font-family: var(--font-ui); }
   border-radius: 8px; background: var(--bg);
   font-size: 13.5px; color: var(--text); outline: none;
   -moz-appearance: textfield;
+  appearance: textfield;
   transition: border-color var(--ease);
 }
 #page-input::-webkit-inner-spin-button,
@@ -415,14 +417,62 @@ button.icon-btn {
 .hidden { display: none !important; }
 
 /* ── Responsive ── */
-@media (max-width: 480px) {
-  .splash-content { padding: 16px; }
-  .card { padding: 22px 18px; }
-  .logo h1 { font-size: 30px; }
-  .room-code-display span { font-size: 24px; letter-spacing: 5px; }
-  .book-title { max-width: 140px; }
+@media (max-width: 600px) {
+  .splash-content { padding: 16px; min-height: auto; }
+  .logo { margin-bottom: 24px; }
+  .logo h1 { font-size: 28px; }
+  .card { padding: 20px 16px; }
+
+  .reader-header { padding: 0 12px; height: 50px; }
+  .header-left, .header-right { min-width: 60px; }
+  .book-title { max-width: 120px; font-size: 15px; }
   .room-tag { display: none; }
-  .reactions { gap: 2px; }
-  .react-btn { width: 30px; height: 30px; font-size: 14px; }
-  .header-left, .header-right { min-width: 80px; }
+
+  .canvas-wrap { padding: 12px; }
+
+  .reader-footer {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 8px 12px;
+    height: auto;
+    min-height: 100px;
+  }
+  .page-counter { order: -2; width: 100%; justify-content: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; pointer-events: none; }
+  #page-input { pointer-events: auto; }
+  .footer-sep { display: none; }
+
+  /* Hide zoom and history label to save space on phones */
+  .zoom-level, #zoom-in-btn, #zoom-out-btn, #history-btn { display: none; }
+
+  .nav-btn { width: 44px; height: 44px; } /* Larger touch targets */
+  .mic-btn { width: 50px; height: 50px; }
+
+  .reactions {
+    width: 100%;
+    justify-content: space-around;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    gap: 4px;
+  }
+  .react-btn {
+    width: 44px; height: 44px; /* Proper finger size */
+    font-size: 20px; flex: 1;
+    border-color: transparent;
+  }
+
+  .room-code-display span { font-size: 24px; letter-spacing: 4px; }
+}
+
+@media (max-width: 360px) {
+  .logo-icon { font-size: 40px; }
+  .logo h1 { font-size: 24px; }
+  .nav-btn { width: 40px; height: 40px; }
+}
+
+/* iPad / Tablet */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .canvas-wrap { padding: 32px; }
+  .history-panel { width: 320px; }
+  .book-title { max-width: 200px; }
 }

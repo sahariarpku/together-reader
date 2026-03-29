@@ -661,9 +661,49 @@ function init() {
       S.socket.once('connect', () => joinRoom(targetRoom));
     }
     show('splash');
+    initGestures();
   } else {
     show('splash');
+    initGestures();
   }
+}
+
+/* ── Swipe Gestures ── */
+let touchStartX = 0;
+let touchEndX = 0;
+
+function initGestures() {
+  const container = $('canvas-wrap');
+  if (!container) return;
+
+  container.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+
+  container.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+    const threshold = 70; // minimum pixels for swipe
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        if (S.currentPage < S.pdfDoc?.numPages) goToPage(S.currentPage + 1);
+      } else {
+        if (S.currentPage > 1) goToPage(S.currentPage - 1);
+      }
+    }
+  }, { passive: true });
+
+  // Double tap to reset zoom
+  let lastTap = 0;
+  container.addEventListener('touchend', e => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    if (tapLength < 300 && tapLength > 0) {
+      resetZoom();
+      e.preventDefault();
+    }
+    lastTap = currentTime;
+  });
 }
 
 init();
